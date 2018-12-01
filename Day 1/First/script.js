@@ -962,12 +962,12 @@ const data = [
 ];
 
 window.onload = () => {
-  const resultingFrequency = data.reduce((result, currentNumber) => {
-    result = currentNumber[0]
-      ? result + currentNumber[1]
-      : result - currentNumber[1];
-    return result;
+  const accumulatedFrequency = data.reduce((accumulator, frequency) => {
+    const [shouldAdd, value] = frequency;
+
+    accumulator = shouldAdd ? accumulator + value : accumulator - value;
+    return accumulator;
   }, 0);
 
-  console.log(resultingFrequency);
+  console.log(accumulatedFrequency);
 };
