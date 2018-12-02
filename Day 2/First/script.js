@@ -251,6 +251,45 @@ const data = [
   "ivjwczgokexltwgsfamvprbnuy"
 ];
 
+let twoTimes = 0;
+let threeTimes = 0;
+let alreadyCounted = [];
+let twoCountedInLoop = false;
+let threeCountedInLoop = false;
+
 window.onload = () => {
-  // Code!
+  data.forEach(string => {
+    // *** Reset variables ***
+    alreadyCounted = [];
+    twoCountedInLoop = false;
+    threeCountedInLoop = false;
+    // *** Reset variables ***
+
+    [...string].forEach(letter => {
+      const numberOfTimes = string.split(letter).length - 1;
+
+      if (
+        numberOfTimes === 2 &&
+        !alreadyCounted.includes(letter) &&
+        !twoCountedInLoop
+      ) {
+        twoTimes++;
+        twoCountedInLoop = true;
+        alreadyCounted.push(letter);
+      }
+      if (
+        numberOfTimes === 3 &&
+        !alreadyCounted.includes(letter) &&
+        !threeCountedInLoop
+      ) {
+        threeTimes++;
+        threeCountedInLoop = true;
+        alreadyCounted.push(letter);
+      }
+    });
+  });
+  console.log("*** FINAL COUNT ***");
+  console.log("Two times:", twoTimes);
+  console.log("Three times:", threeTimes);
+  console.log("Checksum:", twoTimes * threeTimes);
 };
