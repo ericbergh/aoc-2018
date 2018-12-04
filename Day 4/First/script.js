@@ -1,31 +1,7 @@
-const fakeData = [
-  "[1518-11-17 00:02] Guard #19 begins shift",
-  "[1518-10-26 00:27] falls asleep",
-  "[1518-05-02 00:54] wakes up",
-  "[1518-09-20 00:24] wakes up",
-  "[1518-03-17 00:21] falls asleep",
-  "[1518-09-10 00:36] falls asleep",
-  "[1518-10-17 00:09] falls asleep",
-  "[1518-06-05 00:57] wakes up",
-  "[1518-11-17 00:02] Guard #1999 begins shift",
-  "[1518-10-26 00:27] falls asleep",
-  "[1518-05-02 00:54] wakes up",
-  "[1518-09-20 00:24] wakes up",
-  "[1518-03-17 00:21] falls asleep",
-  "[1518-09-10 00:36] falls asleep",
-  "[1518-10-17 00:09] falls asleep",
-  "[1518-06-05 00:57] wakes up"
-];
-
-let guardData = {
-  122: {
-    "00:02": 1
-  }
-};
-
-let currentGuard = {
-  id: null
-};
+let guardData = {};
+let currGuardId = "";
+let currGuardTotalSleep = 0;
+let currGuardSleep = {};
 
 window.onload = async () => {
   const data = await fetch("./data.txt")
@@ -36,67 +12,87 @@ window.onload = async () => {
   const findTime = string => string.match(/\[(.*?)\]/)[1].split(" ")[1];
   const findState = string => string.match(/\](.*)/)[1].trim();
 
-  fakeData.forEach((string, i) => {
-    // Jag behöver veta:
-    // [x] Vakt-id
-    // [] Vilka minuter som vakten sover
-    // [] Hur många gånger den sovit på den minuten
-
+  data.forEach((string, i, array) => {
     const state = findState(string);
 
-    if (!state.includes("Guard")) {
-      const time = findTime(string);
-      console.log(time);
+    if (array[i + 1] === undefined || array[i + 1].includes("Guard")) {
+      // Nästa iteration är en ny vakt / Detta är sista iterationen
+      // Pusha vår buffer till guardData
 
-      if (state.includes("falls")) {
-        // Hantera somna
-      } else {
-        // Hantera vakna
-      }
-      // Hantera sova och vakna
-    } else {
-      // Buffra ett nytt vakt-ID
-      const guardId = findGuardId(string);
-      currentGuard.id = guardId;
-    }
-
-    console.log(string);
-    console.log(fakeData[i + 1]);
-
-    if (fakeData[i + 1] && fakeData[i + 1].includes("Guard")) {
-      console.log("NEW GUARD INC!");
-      // New guard on next iteration
-      // Använd vår buffer för att skapa nya object
-
-      if (guardData[currentGuard.id]) {
+      if (guardData[currGuardId]) {
         // Vakten finns redan i objektet
+        guardData[currGuardId].totalSleep =
+          guardData[currGuardId].totalSleep + currGuardTotalSleep;
+        Object.keys(currGuardSleep).forEach(timeStamp => {
+          guardData[currGuardId].sleep[timeStamp] = guardData[currGuardId]
+            .sleep[timeStamp]
+            ? guardData[currGuardId].sleep[timeStamp] +
+              currGuardSleep[timeStamp]
+            : currGuardSleep[timeStamp];
+        });
       } else {
         // Ny vakt
-        guardData[currentGuard.id] = {};
+        guardData[currGuardId] = {};
+        guardData[currGuardId].totalSleep = currGuardTotalSleep;
+        guardData[currGuardId].sleep = currGuardSleep;
       }
 
-      currentGuard = {}; // Reset the buffer
+      // Resetta buffern
+      currGuardId = "";
+      currGuardTotalSleep = 0;
+      currGuardSleep = {};
     } else {
-      // Out of guards
-      console.log("OUT OF GUARDS");
+      // Buffra
+      if (!state.includes("Guard")) {
+        const time = findTime(string);
+        const nextTime = findTime(array[i + 1]);
+
+        if (state.includes("falls")) {
+          // Hantera somna
+          const fallAsleep = parseInt(time.slice(3), 10);
+          const wakeUp = parseInt(nextTime.slice(3), 10);
+          const minutesAsleep = wakeUp - fallAsleep;
+
+          currGuardTotalSleep = currGuardTotalSleep + minutesAsleep;
+
+          for (let i = 0; i < minutesAsleep; i++) {
+            // Iterera en gång för varje minut som vakten sover
+            const dynamicNumber = fallAsleep + i;
+            const length = (Math.log(dynamicNumber) * Math.LOG10E + 1) | 0;
+            const timeStamp =
+              length === 1 ? `00:0${fallAsleep + i}` : `00:${fallAsleep + i}`;
+
+            currGuardSleep[timeStamp] = currGuardSleep[timeStamp]
+              ? currGuardSleep[timeStamp] + 1
+              : 1;
+          }
+        }
+      } else {
+        // Buffra ett nytt vakt-ID
+        currGuardId = findGuardId(string);
+      }
     }
   });
+
+  const sleepiestGuardId = parseInt(
+    Object.keys(guardData)
+      .map(id => {
+        return [guardData[id].totalSleep, id];
+      })
+      .sort()
+      .reverse()[0][1]
+  );
+
+  const sleepiestGuardSleepSchedule = guardData[sleepiestGuardId].sleep;
+  const sleepiestMinute = parseInt(
+    Object.keys(sleepiestGuardSleepSchedule)
+      .map(timeStamp => {
+        return [sleepiestGuardSleepSchedule[timeStamp], timeStamp];
+      })
+      .sort((a, b) => a[0] - b[0])
+      .reverse()[0][1]
+      .slice(3)
+  );
+
+  console.log("CORRECT ANSWER:", sleepiestGuardId * sleepiestMinute);
 };
-
-// if (string.includes("Guard")) {
-//   // Jag behöver veta:
-//   // Vakt-id
-//   // Vilka minuter som vakten sover
-//   // Hur många gånger den sovit på den minuten
-//   const guardId = string.match(findGuardId)[1];
-//   const time = string.match(findTime)[1].split(" ")[1];
-//   const state = string.match(findState);
-//   console.log(state);
-
-//   console.log(time);
-//   if (guardData[guardId]) {
-//     // Hej
-//   } else {
-//     guardData[guardId] = {};
-//   }
-// }
